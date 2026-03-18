@@ -1,26 +1,42 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 class WeatherSentinel {
-public:
-    // This "Map" links the 3-letter NOAA code to a human-readable name and a priority level
+private:
+    // Replace "022105" with your actual Parish FIPS code (e.g., 022105 is Tangipahoa)
+    std::string homeFipsCode = "022105"; 
+
     std::map<std::string, std::string> alertLevels = {
         {"TOR", "TORNADO WARNING - RED ALERT"},
         {"SVR", "SEVERE THUNDERSTORM - YELLOW ALERT"},
-        {"FFW", "FLASH FLOOD - YELLOW ALERT"},
-        {"RWT", "REQUIRED WEEKLY TEST - GREEN"}
+        {"FFW", "FLASH FLOOD - YELLOW ALERT"}
     };
 
+public:
     void processSignal(std::string rawSignal) {
-        // Real SAME signals have the event code starting at the 10th character
-        // Example: ZCZC-WXR-TOR-022017
+        // SAME Format: [Preamble]-[Originator]-[Event]-[Location]-[Duration]-[Time]-[ID]
+        // Example: ZCZC-WXR-TOR-022105+0015...
+        
         std::string eventCode = rawSignal.substr(9, 3);
+        std::string signalFips = rawSignal.substr(13, 6);
 
-        if (alertLevels.count(eventCode)) {
-            std::cout << "MESSAGE RECEIVED: " << alertLevels[eventCode] << std::endl;
+        std::cout << "Incoming Signal for Location: " << signalFips << std::endl;
+
+        // 1. Check if the alert is for OUR location
+        if (signalFips == homeFipsCode || signalFips == "000000") { // 000000 is "All Areas"
+            
+            // 2. Check if it's an event we care about
+            if (alertLevels.count(eventCode)) {
+                std::cout << "!!! ALERT FOR YOUR AREA: " << alertLevels[eventCode] << " !!!" << std::endl;
+            } else {
+                std::cout << "Local event detected (" << eventCode << "), but not in priority list." << std::endl;
+            }
+
         } else {
-            std::cout << "UNKNOWN SIGNAL: " << eventCode << " - STANDING BY." << std::endl;
+            std::cout << "Alert ignored. Not for home Parish (" << homeFipsCode << ")." << std::endl;
         }
     }
 };
@@ -28,11 +44,16 @@ public:
 int main() {
     WeatherSentinel sentinel;
 
-    // Simulating a Tornado Warning signal from the radio
-    std::string mockRadioInput = "ZCZC-WXR-TOR-022017";
-    
-    std::cout << "--- Sentinel System Booted ---" << std::endl;
-    sentinel.processSignal(mockRadioInput);
+    std::cout << "--- Sentinel System Active (Louisiana Parish Filter On) ---" << std::endl;
+
+    // Test 1: An alert for a DIFFERENT parish
+    std::string otherParish = "ZCZC-WXR-TOR-022017"; 
+    sentinel.processSignal(otherParish);
+
+    // Test 2: An alert for YOUR parish
+    std::string homeParish = "ZCZC-WXR-TOR-022105"; 
+    sentinel.processSignal(homeParish);
 
     return 0;
 }
+
